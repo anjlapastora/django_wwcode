@@ -2,7 +2,7 @@
     <nav class="navbar navbar-expand-lg navbar-light bg-light my-navbar">
         <div class="container">
             <router-link
-                :to="{ name: 'home' }"
+                :to="{ name: 'Home' }"
                 class="navbar-brand"
             >Forum Application
             </router-link>
@@ -19,9 +19,9 @@
                 </li>
                 <li class="nav-item mx-2">
                     <router-link
-                        :to="{ name: 'Home' }"
+                        :to="{ name: 'question-editor' }"
                         class="btn btn-sm btn-danger"
-                    >Add Question
+                    >Ask Question
                     </router-link>
                 </li>
                 <li class="nav-item">

@@ -6,12 +6,61 @@
                 <span class="author-name">{{ question.author }}</span>
             </p>
             <p>{{ question.created_at }}</p>
+          <hr>
+          <div v-if="userHasAnswered">
+            <p class="answer-added">You've written an answer!</p>
+          </div>
+          <div v-else-if="showForm">
+            <form class="card" @submit.prevent="onSubmit">
+              <div class="card-header px-3">
+                Answer the Question
+              </div>
+              <div class="card-block">
+                <textarea 
+                  v-model=newAnswerBody
+                  class="form-control"
+                  placeholder="Answer the Question"
+                  rows="5"
+                ></textarea>
+              </div>
+              <div class="card-footer px-3">
+                <button type="submit" class="btn btn-sm btn-success">Submit Your Answer</button>
+              </div>
+            </form>
+            <p v-if="error" class="error mt-2">{{ error }}</p>
+          </div>
+          <div v-else>
+            <button
+              class="btn btn-sm btn-success"
+              @click="showForm = true"
+            >Answer the Question
+            </button>
+          </div>
+          <hr>
+        </div>
+        <div class="container">
+          <AnswerComponent
+            v-for="(answer,index) in answers"
+            :answer="answer"
+            :key="index"
+          />
+
+          <div class="my-4">
+            <p v-show="loadingAnswers">...loading...</p>
+            <button
+              v-show="next"
+              @click="getQuestionAnswers"
+              class="btn btn-sm btn-outline-success"
+              > Load More
+            </button>
+          </div>
         </div>
     </div>
 </template>
 
 <script>
-import { apiService } from "../common/api.service.js"
+import { apiService } from "@/common/api.service.js";
+import AnswerComponent from "@/components/Answer.vue";
 export default {
     name: "Question",
     props: {
@@ -20,9 +69,19 @@ export default {
             required: true
         }
     },
+    components: {
+        AnswerComponent
+    },
     data() {
         return {
-            question: {}
+            question: {},
+            answers: [],
+            newAnswerBody: null,
+            error: null,
+            userHasAnswered: false,
+            showForm: false,
+            next: null,
+            loadingAnswers: false,
         }
     },
     methods: {
@@ -35,28 +94,64 @@ export default {
           apiService(endpoint)
             .then(data => {
                 this.question = data;
+                this.userHasAnswered = data.user_has_answered;
                 this.setPageTitle(data.content)
             })
-      }
+      },
+      getQuestionAnswers () {
+          let endpoint = `/api/questions/${this.slug}/answers/`;
+          if (this.next) {
+            endpoint = this.next;
+          }
+          this.loadingAnswers = true;
+          apiService(endpoint)
+            .then(data => {
+                this.answers.push(...data.results);
+                this.loadingAnswers = false;
+                if (data.next) {
+                  this.next = data.next;
+                } else {
+                  this.next = null;
+                }
+            })
+        },
+        onSubmit() {
+          if (this.newAnswerBody) {
+            let endpoint = `/api/questions/${this.slug}/answer/`;
+            apiService(endpoint, "POST", { body: this.newAnswerBody })
+              .then(data=> {
+                this.answers.unshift(data)
+              })
+            this.newAnswerBody = null;
+            this.showForm = false;
+            this.userHasAnswered = true;
+            if (this.error) {
+              this.error = null;
+            }
+          } else {
+            this.error = "You can't send an empty answer!";
+          }
+        }
     },
     created() {
         this.getQuestionData(),
-        console.log(this.question);
+        this.getQuestionAnswers(),
+        console.log(this.answers);
     }
 }
 </script>
 
 <style scoped>
-  .question-author {
+  .author-name {
     font-weight: bold;
     color: #DC3545;
   }
-  .question-link {
+  .answer-added {
     font-weight: bold;
-    color: black;
+    color: green;
   }
-  .question-link:hover {
-    color: #343A40;
-    text-decoration: none;
+  .error { 
+    font-weight: bold;
+    color: red;
   }
 </style>
